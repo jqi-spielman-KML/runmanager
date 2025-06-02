@@ -825,7 +825,7 @@ def compile_labscript_with_globals_files(labscript_file, globals_files, output_p
     return returncode, stdout, stderr
 
 
-def compile_labscript_async(labscript_file, run_file, stream_port, done_callback):
+def compile_labscript_async(labscript_file, run_file, stream_port, done_callback, lyse_host):
     """Compiles labscript_file with run_file. This function is designed to be called in
     a thread.  The stdout and stderr from the compilation will be shovelled into
     stream_port via zmq push as it spews forth, and when compilation is complete,
@@ -840,7 +840,7 @@ def compile_labscript_async(labscript_file, run_file, stream_port, done_callback
     to_child, from_child, child = process_tree.subprocess(
         compiler_path, output_redirection_port=stream_port
     )
-    to_child.put(['compile', [labscript_file, run_file]])
+    to_child.put(['compile', [labscript_file, run_file, lyse_host]])
     while True:
         signal, data = from_child.get()
         if signal == 'done':
@@ -888,7 +888,7 @@ def compile_multishot_async(labscript_file, run_files, stream_port, done_callbac
     child.communicate()
 
 
-def compile_labscript_with_globals_files_async(labscript_file, globals_files, output_path, stream_port, done_callback):
+def compile_labscript_with_globals_files_async(labscript_file, globals_files, output_path, stream_port, done_callback, lyse_host):
     """Same as compile_labscript_with_globals_files, except it launches a thread to do
     the work and does not return anything. Instead, stderr and stdout will be put to
     stream_port via zmq push in the multipart message format ['stdout','hello, world\n']
@@ -901,7 +901,7 @@ def compile_labscript_with_globals_files_async(labscript_file, globals_files, ou
     try:
         make_run_file_from_globals_files(labscript_file, globals_files, output_path)
         thread = threading.Thread(
-            target=compile_labscript_async, args=[labscript_file, output_path, stream_port, done_callback])
+            target=compile_labscript_async, args=[labscript_file, output_path, stream_port, done_callback, lyse_host])
         thread.daemon = True
         thread.start()
     except Exception:
